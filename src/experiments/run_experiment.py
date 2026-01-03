@@ -51,6 +51,13 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
     augmentor = WeatherAugmentor()
     sampler = CurriculumSampler(mode=curriculum_mode, total_epochs=epochs)
 
+    # Logging
+    import csv
+    log_file = f"log_{curriculum_mode}.csv"
+    with open(log_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['epoch', 'difficulty', 'train_loss'])
+
     # 2. Training Loop
     model.train()
     
@@ -60,7 +67,6 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
         print(f"\n--- Epoch {epoch+1}/{epochs} | Difficulty Lambda: {current_lambda:.2f} ---")
         
         # Inject difficulty into dataset for this epoch
-        # (Since we are doing per-epoch curriculum, we update the dataset's global weather param)
         dataset.set_weather_severity(current_lambda)
         
         total_loss = 0
@@ -91,10 +97,18 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
             progress_bar.set_postfix(loss=f"{losses.item():.4f}")
             iteration += 1
 
-        print(f"Epoch {epoch+1} Average Loss: {total_loss/len(data_loader)}")
+        avg_loss = total_loss/len(data_loader)
+        print(f"Epoch {epoch+1} Average Loss: {avg_loss:.4f}")
+        
+        # Log to CSV
+        with open(log_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([epoch+1, current_lambda, avg_loss])
         
         # Save Checkpoint
-        torch.save(model.state_dict(), f"checkpoint_epoch_{epoch+1}.pth")
+        ckpt_name = f"checkpoint_{curriculum_mode}_epoch_{epoch+1}.pth"
+        torch.save(model.state_dict(), ckpt_name)
+        print(f"Saved {ckpt_name}")
 
 
     print("Experiment Completed.")
