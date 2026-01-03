@@ -14,8 +14,8 @@ from src.data.loader import NuScenesWeatherDataset, collate_fn
 from src.training.curriculum import CurriculumSampler, WeatherAugmentor
 from src.training.model import get_object_detection_model
 
-def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batch_size=4, lr=0.005):
-    print(f"Starting REAL Research Experiment: Curriculum={curriculum_mode}, Epochs={epochs}")
+def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batch_size=4, lr=0.005, version='v1.0-mini'):
+    print(f"Starting REAL Research Experiment: Curriculum={curriculum_mode}, Epochs={epochs}, Version={version}")
     
     # 1. Setup Data & Model
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -23,8 +23,8 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
 
     # Dataset
     # We need a custom collate_fn because images/boxes are variable size
-    print(f"Loading dataset from {data_root}...")
-    dataset = NuScenesWeatherDataset(root_dir=data_root, split='train')
+    print(f"Loading dataset from {data_root} (Version: {version})...")
+    dataset = NuScenesWeatherDataset(root_dir=data_root, version=version, split='train')
     
     # DataLoader
     data_loader = DataLoader(
