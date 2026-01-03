@@ -31,7 +31,7 @@ def visualize_augmentation(data_root, version='v1.0-mini', output_dir='viz_resul
     
     for idx_count, idx in enumerate(indices):
         print(f"Processing sample {idx}...")
-        sample = dataset[idx] # Returns dict with 'image' (numpy), 'depth'
+        sample = dataset.get_raw_sample(idx) # Returns dict with 'image' (numpy), 'depth'
         
         orig_img = sample['image'] # (H, W, 3)
         depth = sample['depth']

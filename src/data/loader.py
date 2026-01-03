@@ -232,3 +232,23 @@ class NuScenesWeatherDataset(Dataset):
         dense_depth_map = cv2.dilate(depth_map, kernel, iterations=1)
         
         return dense_depth_map
+
+    def get_raw_sample(self, idx):
+        """
+        Returns raw numpy image and depth map for visualization.
+        """
+        sample = self.samples[idx]
+        cam_token = sample['data']['CAM_FRONT']
+        cam_data = self.nusc.get('sample_data', cam_token)
+        
+        # Image
+        img_path = os.path.join(self.root_dir, cam_data['filename'])
+        image = Image.open(img_path).convert("RGB")
+        image_np = np.array(image)
+        
+        # Depth
+        lidar_token = sample['data']['LIDAR_TOP']
+        lidar_data = self.nusc.get('sample_data', lidar_token)
+        depth_map = self._get_depth_map(cam_data, lidar_data)
+        
+        return {"image": image_np, "depth": depth_map}
