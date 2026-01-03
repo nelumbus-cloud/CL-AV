@@ -47,8 +47,8 @@ nvidia-smi
 # A. Baseline: Random Augmentation
 echo "--- Starting Baseline (Random) Experiment ---"
 python src/experiments/run_experiment.py \
-    --version v1.0-trainval \
-    --epochs 12 \
+    --version v1.0-mini \
+    --epochs 20 \
     --curriculum_mode random \
     --batch_size 4 \
     --lr 0.005
@@ -56,8 +56,8 @@ python src/experiments/run_experiment.py \
 # B. Proposed: Linear Curriculum
 echo "--- Starting Proposed (Curriculum) Experiment ---"
 python src/experiments/run_experiment.py \
-    --version v1.0-trainval \
-    --epochs 12 \
+    --version v1.0-mini \
+    --epochs 20 \
     --curriculum_mode linear \
     --batch_size 4 \
     --lr 0.005
@@ -66,12 +66,12 @@ python src/experiments/run_experiment.py \
 echo "--- Evaluating Baseline ---"
 # Find latest random checkpoint
 CKPT_RAND=$(ls -t checkpoint_random_epoch_*.pth | head -1)
-python src/experiments/evaluate.py --checkpoint $CKPT_RAND --version v1.0-trainval
+python src/experiments/evaluate.py --checkpoint $CKPT_RAND --version v1.0-mini
 
 echo "--- Evaluating Curriculum ---"
 # Find latest linear checkpoint
 CKPT_LIN=$(ls -t checkpoint_linear_epoch_*.pth | head -1)
-python src/experiments/evaluate.py --checkpoint $CKPT_LIN --version v1.0-trainval
+python src/experiments/evaluate.py --checkpoint $CKPT_LIN --version v1.0-mini
 
 # 4. Push Results
 echo "--- Pushing Results to GitHub ---"
