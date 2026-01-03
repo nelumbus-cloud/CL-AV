@@ -53,9 +53,22 @@ class WeatherAugmentor:
             weather_type = np.random.choice(['rain', 'fog', 'snow'])
             
         if weather_type == 'fog':
-            # Map lambda [0, 1] to physical beta
-            beta = difficulty_lambda * 0.1
-            return self.fog.add_fog(image, depth, beta=beta)
+            # Map lambda [0, 1] to Visibility
+            vis_m = 800.0 - (difficulty_lambda * 750.0)
+            vis_m = max(30.0, vis_m)
+            
+            from src.simulation.fog_torch import FogGenerator
+            fog_gen = FogGenerator(visibility_m=vis_m)
+            
+            # Prepare Tensors
+            img_t = torch.from_numpy(image).permute(2,0,1).float().unsqueeze(0) / 255.0
+            d_t = torch.from_numpy(depth).unsqueeze(0).unsqueeze(0)
+            
+            with torch.no_grad():
+                aug_t = fog_gen(img_t, d_t)
+                
+            aug_img = aug_t.squeeze(0).permute(1,2,0).numpy() * 255.0
+            return np.clip(aug_img, 0, 255).astype(np.uint8)
             
         elif weather_type == 'rain':
             # Rain rate [0, 1.0]

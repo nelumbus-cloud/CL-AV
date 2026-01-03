@@ -60,7 +60,30 @@ class NuScenesWeatherDataset(Dataset):
                  w_type = self.weather_mode
 
             if w_type == 'fog':
-                 image_np = self.fog.add_fog(image_np, depth_map, beta=self.current_severity * 0.1)
+                 # --- NEW PyTorch Guided Filter Fog ---
+                 # Visibility: Low severity (0.1) -> 800m? High (1.0) -> 50m
+                 # Map severity [0,1] to visibility [800, 30]
+                 vis_m = 800.0 - (self.current_severity * 750.0) 
+                 vis_m = max(30.0, vis_m)
+                 
+                 from src.simulation.fog_torch import FogGenerator
+                 fog_gen = FogGenerator(visibility_m=vis_m)
+                 
+                 # Prepare Tensors (B, C, H, W)
+                 img_t = torch.from_numpy(image_np).permute(2,0,1).float().unsqueeze(0) / 255.0
+                 d_t = torch.from_numpy(depth_map).unsqueeze(0).unsqueeze(0)
+                 
+                 # Apply
+                 with torch.no_grad():
+                     aug_t = fog_gen(img_t, d_t)
+                     
+                 # Convert back for downstream compatibility or update image_np
+                 # Since rest of pipeline expects image_np for Rain/Snow logic or tensor later
+                 # But we are in "if fog" block.
+                 # Let's overwrite image_np
+                 aug_img = aug_t.squeeze(0).permute(1,2,0).numpy() * 255.0
+                 image_np = np.clip(aug_img, 0, 255).astype(np.uint8)
+                 
             elif w_type == 'rain':
                  image_np = self.rain.add_rain(image_np, depth_map, rainfall_rate=self.current_severity)
             elif w_type == 'snow':
