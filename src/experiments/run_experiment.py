@@ -1,8 +1,14 @@
-
 import os
+import sys
 import argparse
 import torch
 import torch.optim as optim
+
+# Add project root to sys.path to resolve 'src' module
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 from torch.utils.data import DataLoader
 from src.data.loader import NuScenesWeatherDataset, collate_fn
 from src.training.curriculum import CurriculumSampler, WeatherAugmentor
