@@ -18,7 +18,8 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
     print(f"Starting REAL Research Experiment: Curriculum={curriculum_mode}, Epochs={epochs}, Version={version}")
     
     # 1. Setup Data & Model
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    assert torch.cuda.is_available(), "CUDA is not available. Please check availability of GPU."
+    device = torch.device('cuda')
     print(f"Using device: {device}")
 
     # Dataset
