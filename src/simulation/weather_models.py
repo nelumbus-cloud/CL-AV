@@ -7,31 +7,61 @@ class FogSimulator:
 
     def add_fog(self, image, depth_map, beta=0.01, atmospheric_light=None):
         """
-        Implements Eq 1 and 2 from the paper:
-        I_fog(x) = J(x)t(x) + A(1-t(x))
+        Improved Physics-based Fog Simulation (Sakaridis et al. 2017).
+        I(x) = R(x)t(x) + L(1-t(x))
         t(x) = e^(-beta * d(x))
+        
+        Improvements:
+        1. Automated Atmospheric Light (L) estimation from brightest pixels (top 0.1%).
+        2. Strict adherence to the optical model.
         """
-        # Normalize image to 0-1 float
         img_float = image.astype(np.float32) / 255.0
         
-        # Estimate atmospheric light A if not provided (usually max intensity pixel or constant)
+        # --- 1. Atmospheric Light Estimation (L) ---
         if atmospheric_light is None:
-            # Simple assumption: brightest pixel or standard gray
-            atmospheric_light = 1.0 # Pure white fog light
+            # Sakaridis strategy: Identify brightest pixels to approximate L.
+            # We pick the top 0.1% brightest pixels in the image
+            # Ideally this should be in the 'sky' or most distant region, 
+            # but top intensity is a standard heuristic (He et al. for dehazing).
             
-        # 1. Calculate Transmission Map t(x) = e^(-beta * d(x))
-        # Ensure depth map is in meters or consistent units. 
-        # Avoid zero depth to prevent issues? (Usually depth is > 0)
-        transmission = np.exp(-beta * depth_map)
+            num_pixels = image.shape[0] * image.shape[1]
+            num_top = int(max(10, num_pixels * 0.001))
+            
+            # Use gray channel for intensity check
+            if len(image.shape) == 3:
+                gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = image
+                
+            # Flatten and sort
+            flat_indices = np.argsort(gray.ravel())[-num_top:]
+            
+            # Get average color of these top pixels from original image
+            # We treat L as a 3-channel vector
+            flat_img = img_float.reshape(-1, 3)
+            top_colors = flat_img[flat_indices]
+            atmospheric_light = np.mean(top_colors, axis=0) # [r, g, b]
+            
+            # Improve realism: Fog light is usually not fully saturated. 
+            # Bias slightly towards gray/white if needed, but mean of bright pixels is usually good.
+            # Ensure it's broadcastable
+            atmospheric_light = atmospheric_light.reshape(1, 1, 3)
+            
+        # --- 2. Transmission Map ---
+        # t(x) = exp(-beta * d(x))
+        # Beta effectively controls visibility. 
+        # For user 'difficulty' lambda [0, 1], we map to physical beta.
+        # Clear weather (lambda=0) -> beta=0
+        # Heavy fog (lambda=1) -> beta=0.05 or higher (visibility < 100m)
+        # NuScenes depth is in meters.
         
-        # Expand transmission to 3 channels for broadcasting
+        transmission = np.exp(-beta * depth_map)
         transmission = np.expand_dims(transmission, axis=-1)
         
-        # 2. Apply Fog Equation
-        # I_fog = J * t + A * (1 - t)
+        # --- 3. Rendering ---
+        # I = J*t + A*(1-t)
         foggy_image = img_float * transmission + atmospheric_light * (1 - transmission)
         
-        # Clip to 0-1 and convert back to uint8
         foggy_image = np.clip(foggy_image, 0, 1) * 255
         return foggy_image.astype(np.uint8)
 
