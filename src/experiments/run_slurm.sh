@@ -8,14 +8,36 @@
 
 # 1. Environment Setup
 echo "Setting up environment..."
-module load miniconda
-source ~/.bashrc
-conda activate cl-av
-module load cuda/12.1
 
-# Ensure we are in the project root
-cd $(dirname $0)/../..
+# Go to the directory where sbatch was called (The project root)
+cd $SLURM_SUBMIT_DIR
 echo "Working Directory: $(pwd)"
+
+# Init Conda
+# Try sourcing the system conda profile directly if typically available
+# Or rely on user's .bashrc but ensure it runs despite non-interactive
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+
+# Explicitly try to load modules or init conda
+module load miniconda || echo "Module load miniconda failed or ignored"
+module load cuda/12.1 || echo "Module load cuda failed or ignored"
+
+# If conda is not a function, try to find it
+if ! command -v conda &> /dev/null; then
+    echo "Conda not found in PATH. Trying common locations..."
+    export PATH=/opt/ohpc/pub/apps/miniconda/bin:$PATH
+fi
+
+# Activate Environment
+echo "Activating 'cl-av'..."
+source activate cl-av || conda activate cl-av
+
+# Debug checks
+which python
+python --version
+nvidia-smi
 
 # 2. Run Experiments
 
