@@ -250,9 +250,38 @@ class NuScenesWeatherDataset(Dataset):
         
         # Dilation to fill holes (approximate dense depth)
         # This is a heuristic needed for fog - pure sparse fog looks spotty
+        # Dilation to fill holes (approximate dense depth)
         import cv2
+        # Use a larger kernel to bridge lidar rings
         kernel = np.ones((5,5), np.uint8)
-        dense_depth_map = cv2.dilate(depth_map, kernel, iterations=1)
+        
+        # 1. Morphological Closing to fill intra-object holes
+        depth_map = cv2.morphologyEx(depth_map, cv2.MORPH_CLOSE, kernel, iterations=3)
+        
+        # 2. Dilate to spread depth to nearby pixels
+        dense_depth_map = cv2.dilate(depth_map, kernel, iterations=3)
+        
+        # 3. Handle Missing Values (Sky vs Holes)
+        # Any pixel still 0.0 is likely sky or far distance (beyond lidar range)
+        # We set them to a "Max Visibility" distance (e.g. 1000m)
+        # This ensures they get fully fogged.
+        
+        # However, purely setting all 0s to 1000 might look weird on edges.
+        # Ideally we perform simple inpainting.
+        
+        # Mask of valid pixels
+        mask = dense_depth_map > 0
+        
+        if np.sum(mask) == 0:
+             # Fallback if no lidar points projected
+             return np.full((H, W), 100.0, dtype=np.float32)
+
+        # Simple Nearest Neighbor Inpainting (via distance transform)
+        # Invert mask (0 where valid, 1 where invalid)
+        # On second thought, simply setting zeros to a large value (Sky) 
+        # is the standard hack for sparse lidar IF we assume holes on objects are closed.
+        
+        dense_depth_map[dense_depth_map == 0] = 300.0 # Set infinite/sky depth
         
         return dense_depth_map
 
