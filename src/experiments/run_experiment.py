@@ -15,7 +15,7 @@ from src.training.curriculum import CurriculumSampler, WeatherAugmentor
 from src.training.model import get_object_detection_model
 
 def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batch_size=4, lr=0.005, version='v1.0-mini'):
-    print(f"Starting REAL Research Experiment: Curriculum={curriculum_mode}, Epochs={epochs}, Version={version}")
+    print(f"Starting Research Experiment: Curriculum={curriculum_mode}, Epochs={epochs}, Version={version}")
     
     # 1. Setup Data & Model
     assert torch.cuda.is_available(), "CUDA is not available. Please check availability of GPU."
