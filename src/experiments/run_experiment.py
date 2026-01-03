@@ -65,7 +65,11 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
         total_loss = 0
         iteration = 0
         
-        for images, targets in data_loader:
+        # Add TQDM progress bar
+        from tqdm import tqdm
+        progress_bar = tqdm(data_loader, desc=f"Epoch {epoch+1}/{epochs} [λ={current_lambda:.2f}]")
+        
+        for images, targets in progress_bar:
             images = list(image.to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -82,8 +86,8 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
             
             total_loss += losses.item()
             
-            if iteration % 10 == 0:
-                print(f"Epoch: {epoch+1}, Iter: {iteration}, Loss: {losses.item():.4f}")
+            # Update progress bar
+            progress_bar.set_postfix(loss=f"{losses.item():.4f}")
             iteration += 1
 
         print(f"Epoch {epoch+1} Average Loss: {total_loss/len(data_loader)}")
