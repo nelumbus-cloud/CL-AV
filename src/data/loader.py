@@ -143,11 +143,16 @@ class NuScenesWeatherDataset(Dataset):
         pcl_path = os.path.join(self.root_dir, lidar_data['filename'])
         pc = LidarPointCloud.from_file(pcl_path)
         
+        from pyquaternion import Quaternion
+
         # Transform Points: Lidar -> Global -> Ego -> Cam
         # 1. Lidar -> Ego
         cs_record_lidar = self.nusc.get('calibrated_sensor', lidar_data['calibrated_sensor_token'])
-        pc.rotate(cs_record_lidar['rotation_matrix'])
-        pc.translate(cs_record_lidar['translation'])
+        
+        # Quaternion to Rotation Matrix
+        lidar_rot = Quaternion(cs_record_lidar['rotation']).rotation_matrix
+        pc.rotate(lidar_rot)
+        pc.translate(np.array(cs_record_lidar['translation']))
         
         # 2. Ego -> Global (at lidar timestamp) -> Global (at cam timestamp) -> Ego (at cam timestamp)
         # To simplify: We assume ego motion is compensated or negligible for simple projection
@@ -156,15 +161,20 @@ class NuScenesWeatherDataset(Dataset):
         poserecord_cam = self.nusc.get('ego_pose', cam_data['ego_pose_token'])
         
         # Lidar Ego -> Global
-        pc.rotate(poserecord_lidar['rotation_matrix'])
-        pc.translate(poserecord_lidar['translation'])
+        ego_lidar_rot = Quaternion(poserecord_lidar['rotation']).rotation_matrix
+        pc.rotate(ego_lidar_rot)
+        pc.translate(np.array(poserecord_lidar['translation']))
         
         # Global -> Cam Ego
         pc.translate(-np.array(poserecord_cam['translation']))
-        pc.rotate(np.array(poserecord_cam['rotation_matrix']).T)
+        ego_cam_rot = Quaternion(poserecord_cam['rotation']).rotation_matrix
+        pc.rotate(ego_cam_rot.T)
         
         # 3. Cam Ego -> Cam Image
         cs_record_cam = self.nusc.get('calibrated_sensor', cam_data['calibrated_sensor_token'])
+        cam_rot = Quaternion(cs_record_cam['rotation']).rotation_matrix
+        pc.translate(-np.array(cs_record_cam['translation']))
+        pc.rotate(cam_rot.T)
         
         # Filter points outside camera view (z > 0)
         # depth = points[2, :]
