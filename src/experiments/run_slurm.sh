@@ -14,28 +14,31 @@ cd $SLURM_SUBMIT_DIR
 echo "Working Directory: $(pwd)"
 
 # Init Conda
-# Try sourcing the system conda profile directly if typically available
-# Or rely on user's .bashrc but ensure it runs despite non-interactive
-if [ -f ~/.bashrc ]; then
-    source ~/.bashrc
-fi
+# Robust initialization for Slurm
+export PATH=/opt/ohpc/pub/apps/miniconda/bin:$PATH
 
-# Explicitly try to load modules or init conda
-module load miniconda || echo "Module load miniconda failed or ignored"
-module load cuda/12.1 || echo "Module load cuda failed or ignored"
-
-# If conda is not a function, try to find it
-if ! command -v conda &> /dev/null; then
-    echo "Conda not found in PATH. Trying common locations..."
-    export PATH=/opt/ohpc/pub/apps/miniconda/bin:$PATH
-fi
+# Initialize Conda for bash
+eval "$(conda shell.bash hook)"
 
 # Activate Environment
 echo "Activating 'cl-av'..."
-source activate cl-av || conda activate cl-av
+conda activate cl-av
+
+# Fallback: If python is still not found, try adding the env path directly
+# Assuming standard location ~/.conda/envs/cl-av or similar.
+# We check if python works.
+if ! command -v python &> /dev/null; then
+    echo "Conda activate failed to put python in path. Trying to guess env path..."
+    # Try finding the env path
+    ENV_PATH=$(conda info --envs | grep cl-av | awk '{print $NF}')
+    if [ -n "$ENV_PATH" ]; then
+        echo "Found env at $ENV_PATH, adding to PATH"
+        export PATH=$ENV_PATH/bin:$PATH
+    fi
+fi
 
 # Debug checks
-which python
+echo "Python location: $(which python)"
 python --version
 nvidia-smi
 
@@ -74,4 +77,4 @@ python src/experiments/evaluate.py --checkpoint $CKPT_LIN --version v1.0-trainva
 echo "--- Pushing Results to GitHub ---"
 git add *.csv *.pth experiment_output_*.log
 git commit -m "Automated experiment results from Slurm Job $SLURM_JOB_ID"
-git push
+git push || echo "WARNING: Git push failed. Please push manually from the login node."
