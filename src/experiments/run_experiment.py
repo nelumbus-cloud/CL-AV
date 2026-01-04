@@ -14,7 +14,7 @@ from src.data.loader import NuScenesWeatherDataset, collate_fn
 from src.training.curriculum import CurriculumSampler, WeatherAugmentor
 from src.training.model import get_object_detection_model
 
-def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batch_size=4, lr=0.005, version='v1.0-mini'):
+def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batch_size=4, lr=0.005, version='v1.0-mini', resume=False):
     print(f"Starting Research Experiment: Curriculum={curriculum_mode}, Epochs={epochs}, Version={version}")
     
     # 1. Setup Data & Model
@@ -58,10 +58,46 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
         writer = csv.writer(f)
         writer.writerow(['epoch', 'difficulty', 'train_loss'])
 
+    # Resume Logic
+    start_epoch = 0
+    if resume:
+        # Search for latest checkpoint
+        import glob
+        import re
+        
+        checkpoints = glob.glob(f"checkpoint_{curriculum_mode}_epoch_*.pth")
+        if checkpoints:
+            # Extract epoch numbers
+            regex = re.compile(rf"checkpoint_{curriculum_mode}_epoch_(\d+).pth")
+            epochs_found = []
+            for cp in checkpoints:
+                match = regex.search(cp)
+                if match:
+                    epochs_found.append(int(match.group(1)))
+            
+            if epochs_found:
+                latest_epoch = max(epochs_found)
+                resume_path = f"checkpoint_{curriculum_mode}_epoch_{latest_epoch}.pth"
+                print(f"Resuming from checkpoint: {resume_path}")
+                
+                checkpoint = torch.load(resume_path, map_location=device)
+                model.load_state_dict(checkpoint)
+                
+                start_epoch = latest_epoch
+                print(f"Resuming training from Epoch {start_epoch + 1}")
+            else:
+                 print("No matching checkpoints found to resume from. Starting from scratch.")
+        else:
+            print("No checkpoints found to resume from. Starting from scratch.")
+            
+    if start_epoch >= epochs:
+        print(f"Training already completed (Current Epoch {start_epoch} >= Target {epochs}). Skipping...")
+        return
+
     # 2. Training Loop
     model.train()
     
-    for epoch in range(epochs):
+    for epoch in range(start_epoch, epochs):
         # Determine Current Difficulty for this Epoch
         current_lambda = sampler.get_difficulty_lambda(epoch)
         print(f"\n--- Epoch {epoch+1}/{epochs} | Difficulty Lambda: {current_lambda:.2f} ---")
@@ -127,6 +163,7 @@ if __name__ == "__main__":
     
     # Mode flags
     parser.add_argument('--verify', action='store_true', help='Run a quick verification on mini dataset with few epochs')
+    parser.add_argument('--resume', action='store_true', help='Resume from latest checkpoint if available')
     
     args = parser.parse_args()
     
@@ -145,5 +182,6 @@ if __name__ == "__main__":
         curriculum_mode=args.curriculum_mode,
         batch_size=args.batch_size,
         lr=args.lr,
-        version=args.version
+        version=args.version,
+        resume=args.resume
     )

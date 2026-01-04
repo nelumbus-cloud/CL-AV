@@ -2,7 +2,7 @@
 #SBATCH -p research-gpu
 #SBATCH -n 8
 #SBATCH --mem=32G
-#SBATCH -t 120
+#SBATCH -t 1440
 #SBATCH --job-name=cl_av_exp
 #SBATCH --output=experiment_output_%j.log
 
@@ -51,7 +51,8 @@ python src/experiments/run_experiment.py \
     --epochs 20 \
     --curriculum_mode random \
     --batch_size 4 \
-    --lr 0.005
+    --lr 0.005 \
+    --resume
 
 # B. Proposed: Linear Curriculum
 echo "--- Starting Proposed (Curriculum) Experiment ---"
@@ -60,7 +61,8 @@ python src/experiments/run_experiment.py \
     --epochs 20 \
     --curriculum_mode linear \
     --batch_size 4 \
-    --lr 0.005
+    --lr 0.005 \
+    --resume
 
 # 3. Robustness Evaluation on Both
 echo "--- Evaluating Baseline ---"
