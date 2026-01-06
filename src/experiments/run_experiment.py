@@ -14,8 +14,11 @@ from src.data.loader import NuScenesWeatherDataset, collate_fn
 from src.training.curriculum import CurriculumSampler, WeatherAugmentor
 from src.training.model import get_object_detection_model
 
-def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batch_size=4, lr=0.005, version='v1.0-mini', resume=False):
+def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batch_size=4, lr=0.005, version='v1.0-mini', resume=False, checkpoint_dir='.'):
     print(f"Starting Research Experiment: Curriculum={curriculum_mode}, Epochs={epochs}, Version={version}")
+    
+    # Create checkpoint dir if it doesn't exist
+    os.makedirs(checkpoint_dir, exist_ok=True)
     
     # 1. Setup Data & Model
     assert torch.cuda.is_available(), "CUDA is not available. Please check availability of GPU."
@@ -65,7 +68,9 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
         import glob
         import re
         
-        checkpoints = glob.glob(f"checkpoint_{curriculum_mode}_epoch_*.pth")
+        # Search in the specified checkpoint directory
+        pattern = os.path.join(checkpoint_dir, f"checkpoint_{curriculum_mode}_epoch_*.pth")
+        checkpoints = glob.glob(pattern)
         if checkpoints:
             # Extract epoch numbers
             regex = re.compile(rf"checkpoint_{curriculum_mode}_epoch_(\d+).pth")
@@ -77,7 +82,7 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
             
             if epochs_found:
                 latest_epoch = max(epochs_found)
-                resume_path = f"checkpoint_{curriculum_mode}_epoch_{latest_epoch}.pth"
+                resume_path = os.path.join(checkpoint_dir, f"checkpoint_{curriculum_mode}_epoch_{latest_epoch}.pth")
                 print(f"Resuming from checkpoint: {resume_path}")
                 
                 checkpoint = torch.load(resume_path, map_location=device)
@@ -142,7 +147,7 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
             writer.writerow([epoch+1, current_lambda, avg_loss])
         
         # Save Checkpoint
-        ckpt_name = f"checkpoint_{curriculum_mode}_epoch_{epoch+1}.pth"
+        ckpt_name = os.path.join(checkpoint_dir, f"checkpoint_{curriculum_mode}_epoch_{epoch+1}.pth")
         torch.save(model.state_dict(), ckpt_name)
         print(f"Saved {ckpt_name}")
 
@@ -160,6 +165,7 @@ if __name__ == "__main__":
     parser.add_argument('--curriculum_mode', type=str, default='linear', choices=['linear', 'step', 'random', 'clear_only'])
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--lr', type=float, default=0.005)
+    parser.add_argument('--checkpoint_dir', type=str, default='.', help='Directory to post/load checkpoints')
     
     # Mode flags
     parser.add_argument('--verify', action='store_true', help='Run a quick verification on mini dataset with few epochs')
@@ -183,5 +189,6 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         lr=args.lr,
         version=args.version,
-        resume=args.resume
+        resume=args.resume,
+        checkpoint_dir=args.checkpoint_dir
     )
