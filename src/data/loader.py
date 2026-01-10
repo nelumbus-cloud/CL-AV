@@ -4,6 +4,7 @@ from PIL import Image
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
 from nuscenes.utils.geometry_utils import view_points
+from nuscenes.utils.splits import create_splits_scenes
 from torch.utils.data import Dataset
 import torch
 from src.simulation.weather_models import FogSimulator, RainSimulator, SnowSimulator
@@ -26,7 +27,27 @@ class NuScenesWeatherDataset(Dataset):
         
         # Get scenes and build sample list
         # Simplified for now: just grab all keyframes
-        self.samples = [s for s in self.nusc.sample]
+        # Filter samples by split
+        splits = create_splits_scenes()
+        
+        # Handle split name mapping if needed (e.g. user passes 'train' but version is mini -> 'mini_train')
+        if version == 'v1.0-mini':
+            if split == 'train': split = 'mini_train'
+            if split == 'val': split = 'mini_val'
+            
+        if split not in splits:
+            raise ValueError(f"Available splits: {list(splits.keys())}")
+            
+        scene_names = splits[split]
+        
+        self.samples = []
+        for s in self.nusc.sample:
+            scene_token = s['scene_token']
+            scene_name = self.nusc.get('scene', scene_token)['name']
+            if scene_name in scene_names:
+                self.samples.append(s)
+                
+        print(f"Found {len(self.samples)} samples for split {split} (Version: {version})")
         
     def set_weather_severity(self, severity, mode='random'):
         self.current_severity = severity

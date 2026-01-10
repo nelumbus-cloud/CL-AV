@@ -14,10 +14,10 @@ export PATH=/opt/ohpc/pub/apps/miniconda/bin:$PATH
 eval "$(conda shell.bash hook)"
 conda activate cl-av
 
-EXPERIMENTAL_MODE="random"
-# Define a temporary directory for checkpoints
-TMP_CHECKPOINT_DIR="/tmp/$SLURM_JOB_ID/checkpoints"
-mkdir -p $TMP_CHECKPOINT_DIR
+EXPERIMENTAL_MODE="clear_only"
+# Define a persistent directory for checkpoints (relative to submit dir)
+CHECKPOINT_DIR="checkpoints"
+mkdir -p $CHECKPOINT_DIR
 
 python src/experiments/run_experiment.py \
     --version v1.0-mini \
@@ -26,4 +26,4 @@ python src/experiments/run_experiment.py \
     --batch_size 4 \
     --lr 0.005 \
     --resume \
-    --checkpoint_dir $TMP_CHECKPOINT_DIR
+    --checkpoint_dir $CHECKPOINT_DIR

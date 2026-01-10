@@ -39,6 +39,17 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
         collate_fn=collate_fn 
     )
 
+    # Validation Dataset
+    print(f"Loading validation dataset...")
+    val_dataset = NuScenesWeatherDataset(root_dir=data_root, version=version, split='val')
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=4,
+        collate_fn=collate_fn
+    )
+
     # Model: Faster R-CNN
     num_classes = 11 # 10 NuScenes classes + background
     model = get_object_detection_model(num_classes)
@@ -59,7 +70,7 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
     log_file = f"log_{curriculum_mode}.csv"
     with open(log_file, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['epoch', 'difficulty', 'train_loss'])
+        writer.writerow(['epoch', 'difficulty', 'train_loss', 'val_loss'])
 
     # Resume Logic
     start_epoch = 0
@@ -139,12 +150,29 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
             iteration += 1
 
         avg_loss = total_loss/len(data_loader)
-        print(f"Epoch {epoch+1} Average Loss: {avg_loss:.4f}")
+        print(f"Epoch {epoch+1} Average Train Loss: {avg_loss:.4f}")
+
+        # --- Validation Step ---
+        print("Running Validation...")
+        val_loss_total = 0
+        # We perform validation in 'train' mode (conceptually) to get losses
+        # but with no gradient updates.
+        with torch.no_grad():
+            for images, targets in val_loader:
+                images = list(image.to(device) for image in images)
+                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                
+                loss_dict = model(images, targets)
+                losses = sum(loss for loss in loss_dict.values())
+                val_loss_total += losses.item()
+        
+        avg_val_loss = val_loss_total / len(val_loader)
+        print(f"Epoch {epoch+1} Average Val Loss: {avg_val_loss:.4f}")
         
         # Log to CSV
         with open(log_file, 'a', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow([epoch+1, current_lambda, avg_loss])
+            writer.writerow([epoch+1, current_lambda, avg_loss, avg_val_loss])
         
         # Save Checkpoint
         ckpt_name = os.path.join(checkpoint_dir, f"checkpoint_{curriculum_mode}_epoch_{epoch+1}.pth")
