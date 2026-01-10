@@ -2,10 +2,10 @@
 #SBATCH -p research-gpu
 #SBATCH -n 8
 #SBATCH --mem=32G
-#SBATCH -t 60
+#SBATCH -t 560 
 #SBATCH --job-name=cl_av_exp
 #SBATCH --output=experiment_output_%j.log
-#SBATCH --mail-type=END
+#SBATCH --mail-type=END,FAIL,TIME_LIMIT
 #SBATCH --mail-user=sb2ek@mtmail.mtsu.edu
 
 cd $SLURM_SUBMIT_DIR
