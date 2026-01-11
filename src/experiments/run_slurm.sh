@@ -20,7 +20,7 @@ CHECKPOINT_DIR="checkpoints"
 mkdir -p $CHECKPOINT_DIR
 
 python src/experiments/run_experiment.py \
-    --version v1.0-mini \
+    --version v1.0-trainval \
     --epochs 20 \
     --curriculum_mode $EXPERIMENTAL_MODE \
     --batch_size 4 \
