@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH -p research-gpu
+#SBATCH --gres=gpu:A5000:1
 #SBATCH -n 8
 #SBATCH --mem=32G
 #SBATCH -t 560 
