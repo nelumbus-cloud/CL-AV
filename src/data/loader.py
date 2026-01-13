@@ -81,7 +81,6 @@ class NuScenesWeatherDataset(Dataset):
                  w_type = self.weather_mode
 
             if w_type == 'fog':
-                 # --- NEW PyTorch Guided Filter Fog ---
                  # Visibility: Low severity (0.1) -> 800m? High (1.0) -> 50m
                  # Map severity [0,1] to visibility [800, 30]
                  vis_m = 800.0 - (self.current_severity * 750.0) 

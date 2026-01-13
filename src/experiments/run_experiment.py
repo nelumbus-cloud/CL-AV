@@ -65,12 +65,8 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
     augmentor = WeatherAugmentor()
     sampler = CurriculumSampler(mode=curriculum_mode, total_epochs=epochs)
 
-    # Logging
     import csv
     log_file = f"log_{curriculum_mode}.csv"
-    with open(log_file, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['epoch', 'difficulty', 'train_loss', 'val_loss'])
 
     # Resume Logic
     start_epoch = 0
@@ -109,6 +105,12 @@ def run_training_experiment(data_root, epochs=10, curriculum_mode='linear', batc
     if start_epoch >= epochs:
         print(f"Training already completed (Current Epoch {start_epoch} >= Target {epochs}). Skipping...")
         return
+
+    # Initialize Log File if needed
+    if start_epoch == 0 or not os.path.exists(log_file):
+        with open(log_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['epoch', 'difficulty', 'train_loss', 'val_loss'])
 
     # 2. Training Loop
     model.train()

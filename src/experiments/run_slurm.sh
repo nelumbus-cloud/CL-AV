@@ -21,10 +21,13 @@ CHECKPOINT_DIR="checkpoints"
 mkdir -p $CHECKPOINT_DIR
 
 python src/experiments/run_experiment.py \
-    --version v1.0-trainval \
+    --version v1.0-mini \
     --epochs 20 \
     --curriculum_mode $EXPERIMENTAL_MODE \
     --batch_size 4 \
     --lr 0.005 \
     --resume \
     --checkpoint_dir $CHECKPOINT_DIR
+
+# Generate Plots
+python src/experiments/plot_loss.py --log_file log_${EXPERIMENTAL_MODE}.csv --output_file loss_plot_${EXPERIMENTAL_MODE}.png
