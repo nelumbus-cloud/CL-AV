@@ -3,8 +3,8 @@
 #SBATCH --gres=gpu:A5000:1
 #SBATCH -n 8
 #SBATCH --mem=32G
-#SBATCH -t 560 
-#SBATCH --job-name=cl_av_exp
+#SBATCH --time=60
+#SBATCH --job-name=train_base_nuscenes_rcnn
 #SBATCH --output=experiment_output_%j.log
 #SBATCH --mail-type=END,FAIL,TIME_LIMIT
 #SBATCH --mail-user=sb2ek@mtmail.mtsu.edu

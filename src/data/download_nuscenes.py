@@ -24,9 +24,9 @@ download_files = {
     # "v1.0-trainval05_blobs.tgz":"1c815ed607a11be7446dcd4ba0e71ed0",
     # "v1.0-trainval06_blobs.tgz":"7273eeea36e712be290472859063a678",
     # "v1.0-trainval07_blobs.tgz":"46674d2b2b852b7a857d2c9a87fc755f",
-    "v1.0-trainval08_blobs.tgz":"37524bd4edee2ab99678909334313adf",
-    "v1.0-trainval09_blobs.tgz":"a7fcd6d9c0934e4052005aa0b84615c0",
-    "v1.0-trainval10_blobs.tgz":"31e795f2c13f62533c727119b822d739",
+#    "v1.0-trainval08_blobs.tgz":"37524bd4edee2ab99678909334313adf",
+#    "v1.0-trainval09_blobs.tgz":"a7fcd6d9c0934e4052005aa0b84615c0",
+#    "v1.0-trainval10_blobs.tgz":"31e795f2c13f62533c727119b822d739",
     "v1.0-trainval_meta.tgz":"537d3954ec34e5bcb89a35d4f6fb0d4a",
 }
 
